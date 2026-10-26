@@ -1,0 +1,39 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: bankops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bankdb
+      POSTGRES_USER: bankapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - bankops_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankapp -d bankdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    image: bankops-api:dev
+    container_name: bankops-api
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: bankdb
+      DB_USER: bankapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  bankops_data:
